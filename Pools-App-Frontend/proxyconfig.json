@@ -1,0 +1,8 @@
+{
+    "/api": {
+        "target": "http://pools-app-backend-service:1234",  
+        "secure": false,
+        "changeOrigin": false,
+        "timeout": 60000
+    }
+}

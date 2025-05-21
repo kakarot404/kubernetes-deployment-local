@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pools-app-frontend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pools-app-frontend-pod
+  template:
+    metadata:
+      labels:
+        app: pools-app-frontend-pod
+    spec: 
+      containers:
+        - name: pools-app-frontend-container
+          image: kakarot404/new-project-frontend:v3  
+          ports:
+            - containerPort: 4200
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pools-app-frontend-service
+spec:
+  selector:
+    app: pools-app-frontend-pod
+  ports:
+    - protocol: TCP
+      port: 4200
+      targetPort: 4200
+  type: LoadBalancer

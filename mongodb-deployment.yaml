@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pools-app-mongodb-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pools-app-mongodb-pod
+  template:
+    metadata:
+      labels:
+        app: pools-app-mongodb-pod
+    spec:
+      containers:
+        - name: mongodb-container
+          image: mongo:5.0                          # Latest MongoDB image
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:                            # Reference to the secret containing credentials
+                secretKeyRef:
+                  name: mongodb-secrets
+                  key: mongo-root-username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:                            # Reference to the secret containing credentials
+                secretKeyRef:
+                  name: mongodb-secrets
+                  key: mongo-root-password
+          ports:
+            - containerPort: 27017                  # Default MongoDB port
+          resources:
+            requests:
+              memory: "1Gi"                         # Request 1 GB of memory
+              cpu: "500m"                           # Request 0.5 CPU
+            limits:
+              memory: "1Gi"
+              cpu: "1"                              # Limit to 1 CPU core
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pools-app-mongodb-service
+spec:
+  selector:
+    app: pools-app-mongodb-pod
+  ports:
+    - protocol: TCP
+      port: 27017                 # Expose MongoDB on port 27017
+      targetPort: 27017
+  clusterIP: None                 # Internal-only service, no external exposure
