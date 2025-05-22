@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.frontend.deploymentName }}
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.frontend.podName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.frontend.podName }}
+    spec: 
+      containers:
+        - name: {{ .Values.frontend.container.name }}
+          image: {{ .Values.frontend.image }} 
+          ports:
+            - containerPort: {{ .Values.frontend.container.port }}
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.frontend.service.name }}
+spec:
+  selector:
+    app: {{ .Values.frontend.podName }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.frontend.service.port }}
+      targetPort: {{ .Values.frontend.service.targetport }}
+  type: LoadBalancer

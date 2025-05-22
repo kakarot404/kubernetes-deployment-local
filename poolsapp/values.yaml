@@ -1,0 +1,111 @@
+# Default values for poolsapp.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+frontend:
+  deploymentName: pools-app-frontend-deployment
+  replicas: 1
+  podName: pools-app-frontend-pod
+  
+  container:
+    name: pools-app-frontend-container
+    port: 4200
+  
+  image: kakarot404/new-project-frontend:v3
+  
+  service:
+    name: pools-app-frontend-service
+    port: 4200
+    targetport: 4200
+
+backend:
+  deploymentName: pools-app-backend-deployment
+  replicas: 1
+  podName: pools-app-backend-pod
+  
+  container:
+    name: pools-app-backend-container
+    port: 1234
+  
+  image: kakarot404/new-project-backend:v2
+  
+  service:
+    name: pools-app-backend-service
+    port: 1234
+    targetport: 1234
+    
+  pullPolicy: IfNotPresent
+
+mongodb:
+  deploymentName: pools-app-mongodb-deployment
+  replicas: 1
+  podName: pools-app-mongodb-pod
+
+  container:
+    name: mongodb-container
+    port: 27017
+
+  image: mongo:5.0
+
+  resources:
+    request:
+      memory: "1Gi"
+      cpu: "500m"
+
+    limits:
+      memory: "1Gi"
+      cpu: "1"
+
+  service:
+    name: pools-app-mongodb-service
+    port: 27017
+    targetport: 27017
+
+  configmap:
+    name: mongodb-configmap
+    database_url: "mongodb://mr_pool:As21kseG7maP@pools-app-mongodb-service:27017/PoolsApp?authSource=admin&retryWrites=true&w=majority"
+  
+  secrets:
+    name: mongodb-secrets
+    username: mr_pool
+    password: As21kseG7maP
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+serviceAccount:
+  create: false
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false    # Or true, if you want to enable ingress
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+imagePullSecrets: []
+podAnnotations: {}
+podLabels: {}
+podSecurityContext: {}
+securityContext: {}
+livenessProbe: {}
+readinessProbe: {}
+resources: {}
+volumeMounts: []
+volumes: []
+nodeSelector: {}
+affinity: {}
+tolerations: []
+ingress: {}

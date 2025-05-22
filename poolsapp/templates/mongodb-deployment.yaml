@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.mongodb.deploymentName }}
+spec:
+  replicas: {{ .Values.mongodb.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.mongodb.podName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.mongodb.podName }}
+    spec:
+      containers:
+        - name: {{ .Values.mongodb.container.name }}
+          image: {{ .Values.mongodb.image }}                                            # Latest MongoDB image
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:                                              # Reference to the secret containing credentials
+                secretKeyRef:
+                  name: mongodb-secrets
+                  key: mongo-root-username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:                                              # Reference to the secret containing credentials
+                secretKeyRef:
+                  name: mongodb-secrets
+                  key: mongo-root-password
+          ports:
+            - containerPort: {{ .Values.mongodb.container.port }}     # Default MongoDB port
+          resources:
+            requests:
+              memory: {{ .Values.mongodb.resources.request.memory }}  # Request 1 GB of memory
+              cpu: {{ .Values.mongodb.resources.request.cpu }}        # Request 0.5 CPU
+            limits:
+              memory: {{ .Values.mongodb.resources.limits.memory }}
+              cpu: {{ .Values.mongodb.resources.limits.cpu }}         # Limit to 1 CPU core
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.mongodb.service.name }}
+spec:
+  selector:
+    app: {{ .Values.mongodb.podName }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.mongodb.service.port }}                        # Expose MongoDB on port 27017
+      targetPort: {{ .Values.mongodb.service.targetport }}
+  clusterIP: None                                                     # Internal-only service, no external exposure

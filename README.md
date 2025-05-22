@@ -1,6 +1,18 @@
-# 🐳 Kubernetes Deployment of Full-Stack App (Frontend + Backend + MongoDB)
+# 🛠️ Helm-Based Kubernetes Deployment (Local) - Pools App
 
-This project demonstrates how to deploy a complete open-source application consisting of a **frontend**, **backend**, and **MongoDB database** using **Kubernetes** on a **local machine**. This setup is built and run using Docker Desktop, but can also be run with Minikube. It's designed to showcase my DevOps skills including containerization, Kubernetes configuration, secret management, and service orchestration.
+This branch demonstrates deploying the Pools App (Frontend + Backend + MongoDB) locally using Helm, the package manager for Kubernetes.
+
+
+## 📦 What is Helm?
+
+Helm is to Kubernetes what:
+
+- `apt` is to Debian-based Linux
+
+- `yum` is to CentOS/RHEL
+
+It helps you define, install, upgrade, and manage Kubernetes applications using a packaging format called charts.
+
 
 ---
 
@@ -11,29 +23,25 @@ kubernetes-deployment-local/
 ├── Pools-App-Backend/               # Source code for the backend service (Node.js)
 ├── Pools-App-Frontend/              # Source code for the frontend application (e.g., Angular/React)
 │
-├── backend-deployment.yaml          # Kubernetes Deployment and Service definition for the backend
-├── frontend-deployment.yaml         # Kubernetes Deployment and Service definition for the frontend
-├── mongodb-deployment.yaml          # Kubernetes Deployment and Service definition for MongoDB
+├── backend-deployment.yaml          
+├── frontend-deployment.yaml         
+├── mongodb-deployment.yaml          
 │
-├── mongo-configmap.yaml             # Kubernetes ConfigMap for MongoDB connection URI
-├── mongodb-secrets.yaml             # Kubernetes Secret for storing MongoDB credentials
-│
-├── LICENSE                          # License for the overall project
+├── mongo-configmap.yaml             
+├── mongodb-secrets.yaml             
+├── poolsapp/                        # HELM CHART 
+│       ├── Chart.yaml
+│       ├── values.yaml
+│       ├── charts/
+│       └── templates/
+│           ├── deployment.yaml (merged from all original templates)
+│           ├── service.yaml
+│           └── (other customized templates)
+├── LICENSE                          
 ├── poolsapp-README.md               # Documentation specific to the Pools App
 ├── poolsapp-LICENSE                 # License specific to the Pools App (if separate from main LICENSE)
-└── README.md                        # Main documentation for the DevOps Kubernetes deployment project                                     
+└── README.md                        # The file you are reading now.                                    
 ```
-
----
-
-## 🚀 Technologies Used
-
-- **Kubernetes**    (local cluster via Docker Desktop)
-- **Docker**        (containerization)
-- **ConfigMaps** and **Secrets** (secure configuration management)
-- **Services**      (`LoadBalancer` and `ClusterIP`)
-- **MongoDB**       (NoSQL database)
-- **Node.js Backend** and **Frontend App** (e.g., Angular or React)
 
 ---
 
@@ -44,155 +52,206 @@ kubernetes-deployment-local/
 
 ---
 
-## ⚙️ Deployment Steps
+## ⚙️ How to Use Helm for Deployment
 
-### Step 1: Lets start Kubernetes Cluster
-Ensure Kubernetes is running via Docker Desktop (Or Minikube).
-( Docker Desktop Settings -> Kubernetes -> Enable Kubernetes)
-
-Verify with:
+### Step 1: Let's Create a Helm Chart
+Use the follwoing command to do so
 ```bash
-kubectl cluster-info            OR
-kubectl version --client
+helm create <name-of-Chart>
+
+helm create poolsapp                <-- Eg.
+```
+This will generate the following default chart structure:
+
+- Chart.yaml    – Chart metadata
+
+- values.yaml   – Default configuration values
+
+- templates/    – Contains YAML templates like deployment.yaml, service.yaml, ingress.yaml, etc.
+
+- .helmignore   – Files to ignore during packaging
+
+### Step 2: Move Kubernetes Templates into Chart
+
+- Copy your existing Kubernetes YAMLs into poolsapp/templates/
+
+- Convert static values to use Helm’s templating syntax ({{ .Values.<key> }})
+
+####  Example:
+
+Template – deployment.yaml
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.backend.deploymentName }}
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.backend.podName }}
+```
+#### Referenced in – values.yaml
+```yaml
+backend:
+  deploymentName: pools-app-backend-deployment
+  replicas: 1
+  podName: pools-app-backend-pod
 ```
 
-### Step 2: Create MongoDB Secrets and MongoDB ConfigMap
+### Step 3: Lint the Chart
 ```bash
-kubectl apply -f mongodb-secrets.yaml
-kubectl apply -f mongo-configmap.yaml
+helm lint ./poolsapp
 ```
+✅ This checks for syntax issues and chart formatting problems.
 
-### Step 3: Deploy MongoDB
+
+### Step 4: Package the Chart
 ```bash
-kubectl apply -f mongodb-deployment.yaml
+helm package ./poolsapp
 ```
-Wait until the pod is running and check:
+This generates a .tgz archive,  
+e.g. poolsapp-0.1.0.tgz, which can be shared or installed.
+
+
+### Step 5: Install the Helm Chart
+
 ```bash
-kubectl get pods
+helm install my-poolsapp ./poolsapp-0.1.0.tgz
 ```
+### Step 6: Upgrade (if needed)
 
-### Step 4: Deploy Backend and Frontend
 ```bash
-kubectl apply -f backend-deployment.yaml
-kubectl apply -f frontend-deployment.yaml
+helm upgrade my-poolsapp ./poolsapp
 ```
 
-### Step 5: Access the App Now
+### Step 7: Uninstall (Cleanup)
 
-Check service ports:
 ```bash
-kubectl get services
-```
-Eg. 
-```ruby
-NAME                                 TYPE               PORT(S)
-service/kubernetes                   ClusterIP          443/TCP
-service/pools-app-backend-service    LoadBalancer       1234:32149/TCP
-service/pools-app-frontend-service   LoadBalancer       4200:31134/TCP
-service/pools-app-mongodb-service    ClusterIP          27017/TCP
+helm uninstall my-poolsapp
 ```
 
-### 🌐 Access the App:
+---
 
-    Frontend: http://localhost:4200
+### 🔎 Useful Helm Commands
 
-Note: Docker Desktop maps service ports directly to localhost.
+| Task                                    | Command                                        |
+| --------------------------------------- | ---------------------------------------------- |
+| List Helm releases in current namespace | `helm list`                                    |
+| List all releases across namespaces     | `helm list --all-namespaces` or `helm list -A` |
+| View release status                     | `helm status <release>`                        |
+| View all manifest details of a release  | `helm get all <release>`                       |
+| Print Helm environment variables        | `helm env`                                     |
+---
+
+### 🧠 Important:
+Run helm lint before packaging. helm package will still work if the chart is invalid, but may result in a broken .tgz.
+
+---
+
+### 🌐 Official Helm Docs
+
+For more examples and a CLI reference, visit:
+👉 https://helm.sh/docs/intro/cheatsheet
 
 
-## ✅ Verifying Deployment
+## ✅  Verifying Deployment & Debugging
 
-Run ```bash kubectl get all``` to see pods, deployments, and services.
+After you deploy your app using Helm, it’s important to verify that everything is running as expected. Below are useful tips and commands.
 
-Check logs:
+### 🔍 Check Pods and Services
+#### List Pods with IPs and Node Details:
+---
+```bash
+kubectl get pods -o wide
+```
+#### List Services and Their Cluster IPs:
+---
+```bash
+kubectl get svc
+```
+#### Check Helm Release Status:
+---
+```bash
+helm status <release-name>
+```
+    This will show:
 
+    -   Release namespace
+
+    -   Deployment status
+
+    -   Resources created
+
+    -   Notes from templates/notes.txt (if defined)
+
+### 📄 View Pod Logs
+#### Single Pod Logs:
+---
 ```bash
 kubectl logs <pod-name>
 ```
-You can test backend API endpoints via Postman or curl.
 
-And use browser to interact with the frontend.
-
-
-## 📝 Notes and Tips
-
-- Use the correct image & tag in your deployment YAML files.
-
-- 🐳 If you modify code/templates, make sure to push the updated image to Docker Hub or your local registry.
-
-- For troubleshooting Pods:
+#### 💡 Use -f to follow logs:
+---
 ```bash
-kubectl get pods
-kubectl describe pod <pod-name>
+kubectl logs <pod-name> -f
 ```
 
-- 🔁 If you change the name of your backend service, don't forget to update the frontend proxy config accordingly.
+---
 
+## 🧪 Debug Tools
 
-## 🔧 Networking & DNS Utilities
-
-Kubernetes networking is abstract. Use the following commands to debug:
-
-| Task                       | Command                                |
-| -------------------------- | -------------------------------------- |
-| See Pod IPs                | `kubectl get pods -o wide`             |
-| See Services and their IPs | `kubectl get svc -o wide`              |
-| View Network Policies      | `kubectl get networkpolicy`            |
-| DNS resolution             | `kubectl exec <pod> -- nslookup <svc>` |
-| Check CNI plugin           | `kubectl get pods -n kube-system`      |
-| Check Service Endpoints    | `kubectl get endpoints`                |
-
-## 🧪 Debugging with a Utility Pod
-
-Because slim containers often lack DNS tools (nslookup, dig, etc.), use a debug pod like this:
+If a container is crashing or DNS fails, try these:
+#### Run a debug pod with networking tools:
+---
 ```bash
 kubectl run -it debug --rm --image=busybox --restart=Never -- sh
 ```
-Inside the shell:
-```bash
+Inside it, test DNS resolution:
+```sh
 nslookup pools-app-frontend-service
 ```
 
-    Example output:
-
-    Server:         10.96.0.10            ← Cluster DNS Server IP (CoreDNS)
-    Address:        10.96.0.10:53
-
-    Name:   pools-app-frontend-service.default.svc.cluster.local
-    Address: 10.106.81.20                ← ClusterIP for the frontend service
-
-## 🧠 This confirms:
-
-- The service exists
-
-- It's in the default namespace
-
-- DNS resolution is working as expected
-
-## 🧹 Cleanup or Pause the App
-To delete deployments and services:
+#### Describe Failing Pod:
+---
 ```bash
-kubectl delete deployment <deployment-1> <deployment-2> ...
-kubectl delete service <service-1> <service-2> ...
+kubectl describe pod <pod-name>
 ```
-To pause (stop without deleting):
+You’ll get:
+
+- Container state
+
+- Events
+
+- Mount paths
+
+- Probes
+
+- Volume issues (if any)
+
+## 📌 Tip: Check All Resources Created by Helm
+
 ```bash
-kubectl scale deployment <deployment-name> --replicas=0
+kubectl get all -l app=<your-label>
 ```
 
-## 🚀 DevOps Highlights
+Or list everything in the namespace:
+```bash
+kubectl get all -n <namespace>
+```
 
-- Declarative infrastructure with Kubernetes YAML files
+## 🔮 What’s Next?
 
-- Secure credential handling via Secrets
+This branch currently demonstrates a basic Helm deployment (no ingress, HPA, or service accounts yet). In upcoming commits, we will:
 
-- Environment configuration using ConfigMaps
+    Add Ingress configuration
 
-- Modular deployment for database, backend, and frontend
+    Add HorizontalPodAutoscaler (HPA)
 
-- Local Kubernetes environment simulating production
+    Add advanced values.yaml structures
 
-## 📦 What’s Next?
+    Enhance the chart with reusable templates and helpers
 
-This is the manual Kubernetes setup. In the next branch, we'll migrate this deployment to use Helm for better reusability, templating, and configurability.
-
-Stay tuned!
+Stay tuned!!
